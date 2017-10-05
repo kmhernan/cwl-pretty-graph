@@ -30,7 +30,9 @@ def main():
     wfobj = load_workflow(args.workflow_file)
 
     # Initialize graph
-    gv = CwlGraphHandler(args.output_prefix + '.gv', fmt=args.image_format, engine=args.engine)
+    gv = CwlGraphHandler(args.output_prefix + '.gv', 
+                         fmt=args.image_format, 
+                         engine=args.engine)
     gv.process(wfobj)
  
 def get_args():

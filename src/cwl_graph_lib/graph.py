@@ -4,8 +4,11 @@ import os
 from cwltool.cwlrdf import lastpart
 from cwltool.process import shortname
 
+from cwl_graph_lib.logger import Logger
+
 class GraphHandler(object):
     def __init__(self, prefix, fmt='png', engine='dot'):
+        self.logger = Logger.get_logger('GraphHandler') 
         self.g = graphviz.Digraph(
             name='workflow',
             format=fmt,
@@ -42,9 +45,13 @@ class GraphHandler(object):
 
 class CwlGraphHandler(GraphHandler):
     def process(self, workflow):
+        self.logger.info("Building inputs...")
         self.addInputs(workflow)
+        self.logger.info("Building steps...")
         self.writeSteps(workflow)
+        self.logger.info("Building outputs...")
         self.addOutputs(workflow)
+        self.logger.info("Creating output file...")
         self.write()
 
     def addInputs(self, workflow):
@@ -75,10 +82,23 @@ class CwlGraphHandler(GraphHandler):
         # map inputs
         names = set([i["id"] for i in workflow.tool["inputs"]])
         indic = {}
+        defaultCount = 0
         for step in workflow.steps:
             for inp in step.tool["inputs"]:
-                source = inp["source"]
-                if source in names:
+                source = inp.get("source")
+                if source is None:
+                    # no source so it is default only
+                    default = self.get_default_value(inp)
+                    if default is not None:
+                        self.g.node("default{0}".format(defaultCount), 
+                                    str(default), fillcolor="#D5AEFC")
+                        self.g.edge("default{0}".format(defaultCount), 
+                                    lastpart(str(step.id)), label=shortname(inp["id"]))
+                        defaultCount += 1
+                    else:
+                        self.logger.warn("Default value of None with no source!!")
+
+                elif source in names:
                     self.g.edge(lastpart(source), lastpart(str(step.id)))
                 else:
                     if step.id not in indic: indic[step.id] = []
@@ -92,7 +112,8 @@ class CwlGraphHandler(GraphHandler):
         for step in workflow.steps:
             for outp in step.tool["outputs"]:
                 if outp["id"] in outdic:
-                    self.g.edge(lastpart(str(step.id)), lastpart(str(outdic[outp["id"]]["id"])))
+                    self.g.edge(lastpart(str(step.id)), 
+                                lastpart(str(outdic[outp["id"]]["id"])))
 
         for i in indic:
             right_step = lastpart(i)
@@ -115,6 +136,12 @@ class CwlGraphHandler(GraphHandler):
                     self.g.edge(lastpart(step.id), lastpart(next(oiter)['id']), style='invis')
                 except StopIteration:
                     pass
+
+    def get_default_value(self, obj):
+        dflt = obj.get('default')
+        if dflt is None: return None
+        elif type(dflt) == bool: return str(dflt).lower()
+        else: return str(dflt)
 
     def addInputOutput(self, g, obj):
         label = obj.get('label')
