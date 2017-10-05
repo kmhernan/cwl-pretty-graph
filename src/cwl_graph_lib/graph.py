@@ -3,6 +3,7 @@ import graphviz
 import os
 from cwltool.cwlrdf import lastpart
 from cwltool.process import shortname
+from cwltool.process import CommentedSeq
 
 from cwl_graph_lib.logger import Logger
 
@@ -84,6 +85,7 @@ class CwlGraphHandler(GraphHandler):
         indic = {}
         defaultCount = 0
         for step in workflow.steps:
+            step_sources = {} 
             for inp in step.tool["inputs"]:
                 source = inp.get("source")
                 if source is None:
@@ -98,8 +100,17 @@ class CwlGraphHandler(GraphHandler):
                     else:
                         self.logger.warn("Default value of None with no source!!")
 
+                elif type(source) == CommentedSeq:
+                    for s in source:
+                        if s not in step_sources:
+                            self.g.edge(lastpart(s), lastpart(str(step.id))) 
+                            step_sources[s] = None
+
                 elif source in names:
-                    self.g.edge(lastpart(source), lastpart(str(step.id)))
+                    if source not in step_sources:
+                        self.g.edge(lastpart(source), lastpart(str(step.id)))
+                        step_sources[source] = None
+
                 else:
                     if step.id not in indic: indic[step.id] = []
                     indic[step.id].append(source)
