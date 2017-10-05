@@ -5,10 +5,11 @@ from cwltool.cwlrdf import lastpart
 from cwltool.process import shortname
 
 class GraphHandler(object):
-    def __init__(self, prefix, fmt='png'):
+    def __init__(self, prefix, fmt='png', engine='dot'):
         self.g = graphviz.Digraph(
             name='workflow',
             format=fmt,
+            engine=engine,
             graph_attr={
                 'bgcolor': '#eeeeee',
                 'color': 'black',
@@ -74,29 +75,10 @@ class CwlGraphHandler(GraphHandler):
         # map inputs
         names = set([i["id"] for i in workflow.tool["inputs"]])
         indic = {}
-        #indefaults = {}
-        #for i in workflow.tool["inputs"]:
-        #    if "default" in i: 
-        #        indefaults[i["id"]] = str(i["default"])
-        #defaultCounts = 0
         for step in workflow.steps:
             for inp in step.tool["inputs"]:
                 source = inp["source"]
                 if source in names:
-                    #has_default = False
-                    #if 'default' in inp:
-                    #    has_default = True
-                    #    default = str(inp['default'])
-                    #    self.g.node("default{0}".format(defaultCounts), default, fillcolor="#D5AEFC")
-
-                    #elif source in indefaults:
-                    #    has_default = True
-                    #    default = indefaults[source]
-                    #    self.g.node("default{0}".format(defaultCounts), default, fillcolor="#D5AEFC")
-
-                    #if has_default:                         
-                    #    self.g.edge("default{0}".format(defaultCounts), lastpart(str(step.id)), label=shortname(source))
-                    #    defaultCounts += 1
                     self.g.edge(lastpart(source), lastpart(str(step.id)))
                 else:
                     if step.id not in indic: indic[step.id] = []
@@ -125,7 +107,7 @@ class CwlGraphHandler(GraphHandler):
             for left_step in list(set(left_steps)):
                 self.g.edge(left_step, right_step)
 
-        # Workaround to force outputs to lowest ranking, see #104
+        # Workaround to force outputs to lowest ranking
         if len(workflow.tool["outputs"]) > 0:
             oiter = iter(workflow.tool["outputs"])
             for step in workflow.steps:
@@ -135,7 +117,6 @@ class CwlGraphHandler(GraphHandler):
                     pass
 
     def addInputOutput(self, g, obj):
-        #nodeOptions = {'fillcolor': "#94DDF4"}
         label = obj.get('label')
         if not label:
             label = shortname(obj["id"])

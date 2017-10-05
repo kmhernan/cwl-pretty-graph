@@ -30,7 +30,7 @@ def main():
     wfobj = load_workflow(args.workflow_file)
 
     # Initialize graph
-    gv = CwlGraphHandler(args.output_prefix + '.gv', fmt=args.image_format)
+    gv = CwlGraphHandler(args.output_prefix + '.gv', fmt=args.image_format, engine=args.engine)
     gv.process(wfobj)
  
 def get_args():
@@ -39,6 +39,8 @@ def get_args():
         description="Create pretty graph images from a CWL workflow file"
     )
 
+    p.add_argument('--engine', type=str, default='dot',
+        help='The engine for clustering [dot]') 
     p.add_argument('--image_format', type=str, default='png',
         help='The format of the output image that is supported by graphviz [png]')
     p.add_argument('workflow_file', type=str,
