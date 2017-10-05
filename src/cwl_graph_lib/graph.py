@@ -103,7 +103,8 @@ class CwlGraphHandler(GraphHandler):
                 elif type(source) == CommentedSeq:
                     for s in source:
                         if s not in step_sources:
-                            self.g.edge(lastpart(s), lastpart(str(step.id))) 
+                            if step.id not in indic: indic[step.id] = []
+                            indic[step.id].append(s)
                             step_sources[s] = None
 
                 elif source in names:
@@ -112,8 +113,10 @@ class CwlGraphHandler(GraphHandler):
                         step_sources[source] = None
 
                 else:
-                    if step.id not in indic: indic[step.id] = []
-                    indic[step.id].append(source)
+                    if source not in step_sources:
+                        if step.id not in indic: indic[step.id] = []
+                        indic[step.id].append(source)
+                        step_sources[source] = None
 
         # write links between nodes
         outdic = {}
@@ -132,7 +135,7 @@ class CwlGraphHandler(GraphHandler):
             for k in indic[i]:
                 first, rest = k.split('#')
                 first = os.path.basename(first)
-                rest  = os.path.dirname(rest)
+                rest  = os.path.dirname(rest) if '/' in rest else rest
                 left_step = first + '#' + rest
                 left_steps.append(left_step)
 
@@ -144,7 +147,9 @@ class CwlGraphHandler(GraphHandler):
             oiter = iter(workflow.tool["outputs"])
             for step in workflow.steps:
                 try:
-                    self.g.edge(lastpart(step.id), lastpart(next(oiter)['id']), style='invis')
+                    self.g.edge(lastpart(step.id), 
+                                lastpart(next(oiter)['id']), 
+                                style='invis')
                 except StopIteration:
                     pass
 
